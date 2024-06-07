@@ -4,16 +4,17 @@ import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup("example")
+@ConfigGroup("LootKeySplit")
 public interface LootKeySplitConfig extends Config
 {
+
 	@ConfigItem(
-		keyName = "greeting",
-		name = "Welcome Greeting",
-		description = "The message to show to the user when they login"
+			keyName = "clan",
+			name = "Clan Chat",
+			description = "Enables logging of the clan chat"
 	)
-	default String greeting()
-	{
-		return "Hello";
+
+	default boolean StartLootLog() {
+		return true;
 	}
 }
