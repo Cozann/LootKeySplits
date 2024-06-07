@@ -27,13 +27,13 @@ public class LootKeySplitPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		log.info("Example started!");
+		log.info("LookKey Split started!");
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
-		log.info("Example stopped!");
+		log.info("LookKey Split stopped!");
 	}
 
 	@Subscribe
