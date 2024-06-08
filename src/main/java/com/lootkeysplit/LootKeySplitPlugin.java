@@ -4,8 +4,8 @@ import com.google.inject.Provides;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
+import com.lootkeysplit.LootKeySplitPanel;
 
-import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
@@ -20,10 +20,22 @@ import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import net.runelite.client.RuneLite;
 import net.runelite.api.events.*;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
+import java.awt.image.BufferedImage;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import net.runelite.client.util.ImageUtil;
 
-@Slf4j
-@PluginDescriptor(name = "LootKey Splits")
+@PluginDescriptor(name = "LootKey Splits",
+		description = "lootkey splits enable to use",
+		loadWhenOutdated = true)
 
 public class LootKeySplitPlugin extends Plugin
 {
@@ -33,24 +45,55 @@ public class LootKeySplitPlugin extends Plugin
 	private Client client;
 
 	@Inject
+	private ClientToolbar clientToolbar;
+
+	private LootKeySplitPanel panel;
+	private NavigationButton navButton;
+
+	@Inject
 	private LootKeySplitConfig config;
 
 	private Logger clanChatLogger;
 	private boolean can_load = false;
+	public static LootKeySplitConfig CONFIG;
+	public static LootKeySplitPlugin PLUGIN;
+
+	public static String logfilepath = RuneLite.RUNELITE_DIR + "/chatlogs/clan/latest.log";
+
+	@Provides
+	LootKeySplitConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(LootKeySplitConfig.class);
+	}
 
 	@Override
 	protected void startUp() throws Exception
 	{
+		CONFIG = config; // save static instances of config/plugin to easily use in
+		PLUGIN = this;   // other contexts without passing them all the way down or injecting
+
+		panel = new LootKeySplitPanel(this,this.config);
+
+		navButton = NavigationButton.builder()
+				.tooltip("SPLITS")
+				.icon(ImageUtil.loadImageResource(getClass(), "/lootkey.png"))
+				.priority(15)
+				.panel(panel)
+				.build();
+
+		clientToolbar.addNavigation(navButton);
+
 		if(client.getGameState().equals(GameState.LOGGED_IN)){
 			triggerInit();
 		}
-		log.info("LookKey Split started!");
 	}
 
 	@Override
-	protected void shutDown() throws Exception
+	protected void shutDown()
 	{
-		log.info("LookKey Split stopped!");
+		clientToolbar.removeNavigation(navButton);
+		panel = null;
+		navButton = null;
 	}
 
 	@Subscribe
@@ -75,8 +118,15 @@ public class LootKeySplitPlugin extends Plugin
 		can_load = true;
 	}
 
-	private void initLoggers() {
+	private void stopTracking(){
 
+	}
+
+	public void resetChatLog() throws IOException {
+		new FileWriter(logfilepath, false).close();
+	}
+
+	private void initLoggers() {
 		clanChatLogger = setupLogger("ClanChatLogger", "clan");
 	}
 
@@ -97,13 +147,11 @@ public class LootKeySplitPlugin extends Plugin
 			case GAMEMESSAGE:
 
 			case CLAN_CHAT:
-				if (config.StartLootLog()) {
-					clanChatLogger.info("{}: {}", event.getName(), event.getMessage());
-				}
+
 			case CLAN_GUEST_CHAT:
 
 			case CLAN_MESSAGE:
-				if (config.StartLootLog()) {
+				if (SharedState.isLoggingEnabled) {
 						clanChatLogger.info("{}", event.getMessage());
 					}
 
@@ -116,22 +164,16 @@ public class LootKeySplitPlugin extends Plugin
 			case MODCHAT:
 
 			case PUBLICCHAT:
-
 		}
 	}
 
-	@Provides
-	LootKeySplitConfig provideConfig(ConfigManager configManager)
-	{
-		return configManager.getConfig(LootKeySplitConfig.class);
-	}
 
 	private Logger setupLogger(String loggerName, String subFolder) {
 		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
 
 		PatternLayoutEncoder encoder = new PatternLayoutEncoder();
 		encoder.setContext(context);
-		encoder.setPattern("%d{HH:mm:ss} %msg%n");
+		encoder.setPattern("%msg%n");
 		encoder.start();
 
 		String directory = BASE_DIRECTORY;
@@ -164,3 +206,4 @@ public class LootKeySplitPlugin extends Plugin
 	}
 
 }
+
